@@ -116,7 +116,7 @@ class GoogleAnalyticsHook(BaseHook):
             metrics,
             page_size=1000,
             include_empty_rows=False,
-            filters=None):
+            filtersExpression=None):
         """Returns Analytics data for a view (profile)."""
 
         analytics = self.get_service_object(name='reporting')
@@ -129,7 +129,7 @@ class GoogleAnalyticsHook(BaseHook):
             'metrics': metrics,
             'pageSize': page_size,
             'includeEmptyRows': include_empty_rows,
-            'filters': filters
+            'filtersExpression': filtersExpression
         }
 
         response = (analytics
