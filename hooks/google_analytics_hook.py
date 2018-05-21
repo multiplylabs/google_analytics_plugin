@@ -20,8 +20,10 @@ on execution.
 "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
 "client_x509_cert_url": "{CERT_URL}"
 
-In Airflow 1.9.0 this requires to use the web interface or cli to set connection extra's. If you prefer to not use the
-web interface to manage connections you can also supply the key as a json file.
+In Airflow 1.9.0 this requires to use the web interface or cli to set
+connection extra's.
+If you prefer to not use the web interface to manage connections you can
+also supply the key as a json file.
 
 @TODO: add support for p12 keys
 
@@ -43,7 +45,8 @@ from collections import namedtuple
 
 class GoogleAnalyticsHook(BaseHook):
     GAService = namedtuple('GAService', ['name', 'version', 'scopes'])
-    # We need to rely on 2 services depending on the task at hand: reading from or writing to GA.
+    # We need to rely on 2 services depending on the task at hand: reading
+    # from or writing to GA.
     _services = {
         'reporting': GAService(name='analyticsreporting',
                                version='v4',
@@ -54,11 +57,17 @@ class GoogleAnalyticsHook(BaseHook):
     }
     _key_folder = os.path.join(conf.get('core', 'airflow_home'), 'keys')
 
-    def __init__(self, google_analytics_conn_id='google_analytics_default', key_file=None):
+    def __init__(
+            self,
+            google_analytics_conn_id='google_analytics_default',
+            key_file=None):
+        """Initialize GoogleAnalyticsHook."""
         self.google_analytics_conn_id = google_analytics_conn_id
         self.connection = self.get_connection(google_analytics_conn_id)
+
         if 'client_secrets' in self.connection.extra_dejson:
             self.client_secrets = self.connection.extra_dejson['client_secrets']
+
         if key_file:
             self.file_location = os.path.join(GoogleAnalyticsHook._key_folder, key_file)
 
@@ -69,23 +78,24 @@ class GoogleAnalyticsHook(BaseHook):
             credentials = AccessTokenCredentials(self.connection.password,
                                                  'Airflow/1.0')
         elif hasattr(self, 'client_secrets'):
-            credentials = ServiceAccountCredentials.from_json_keyfile_dict(self.client_secrets,
-                                                                           service.scopes)
+            credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+                self.client_secrets, service.scopes)
 
         elif hasattr(self, 'file_location'):
-            credentials = ServiceAccountCredentials.from_json_keyfile_name(self.file_location,
-                                                                           service.scopes)
+            credentials = ServiceAccountCredentials.from_json_keyfile_name(
+                self.file_location, service.scopes)
         else:
             raise ValueError('No valid credentials could be found')
 
         return build(service.name, service.version, credentials=credentials)
 
-    def get_management_report(self,
-                              view_id,
-                              since,
-                              until,
-                              metrics,
-                              dimensions):
+    def get_management_report(
+            self,
+            view_id,
+            since,
+            until,
+            metrics,
+            dimensions):
 
         analytics = self.get_service_object(name='management')
 
@@ -96,15 +106,18 @@ class GoogleAnalyticsHook(BaseHook):
             metrics=metrics,
             dimensions=dimensions).execute()
 
-    def get_analytics_report(self,
-                             view_id,
-                             since,
-                             until,
-                             sampling_level,
-                             dimensions,
-                             metrics,
-                             page_size,
-                             include_empty_rows):
+    def get_analytics_report(
+            self,
+            view_id,
+            since,
+            until,
+            sampling_level,
+            dimensions,
+            metrics,
+            page_size=1000,
+            include_empty_rows=False,
+            filters=None):
+        """Returns Analytics data for a view (profile)."""
 
         analytics = self.get_service_object(name='reporting')
 
@@ -114,8 +127,9 @@ class GoogleAnalyticsHook(BaseHook):
             'samplingLevel': sampling_level or 'LARGE',
             'dimensions': dimensions,
             'metrics': metrics,
-            'pageSize': page_size or 1000,
-            'includeEmptyRows': include_empty_rows or False
+            'pageSize': page_size,
+            'includeEmptyRows': include_empty_rows,
+            'filters': filters
         }
 
         response = (analytics
